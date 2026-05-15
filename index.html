@@ -521,7 +521,7 @@ let sb = null;
 
 function initSupabase() {
   const url = 'https://odkvslicobbzangjvst.supabase.co';
-  const key = 'sb_publishable_jOy6ol2DOb8fb8d05eKsNA_uD84065U';
+  const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ka3ZzbGljb29iYnphbmdqdnN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Mzc4OTksImV4cCI6MjA5NDQxMzg5OX0._XzthrbWnK8SXOYMfVowiPsTQ50aKgS9GVq1essJhzs';
   try { sb = window.supabase.createClient(url, key); return true; }
   catch(e) { return false; }
 }
