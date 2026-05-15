@@ -420,7 +420,7 @@
       <div class="tasks-wrap" id="tasks-wrap"></div>
       <div id="submit-section">
         <div class="warning-text" id="warning-text">Miss one thing and you're back to Day 1. That's just how this works.</div>
-        <button class="lock-btn" id="lock-btn" onclick="submitDay()">LOCK IN TODAY</button>
+        <button class="lock-btn" id="lock-btn" onclick="submitDay()">MARK COMPLETE</button>
       </div>
     </div>
 
@@ -584,6 +584,7 @@ const MOTIVATORS = [
 // =============================================
 window.addEventListener('load', async () => {
   // credentials hardcoded
+  showScreen('loading-screen');
 
   // Check for invite code in URL
   const params = new URLSearchParams(window.location.search);
@@ -677,6 +678,7 @@ async function handleLogin() {
   const name = document.getElementById('login-name').value.trim().toLowerCase();
   if (!name) { showErr('auth-err', 'Enter your name.'); return; }
   setBtnLoading('login-btn', true);
+  hideErr('auth-err');
 
   if (sb) {
     const { data: user } = await sb.from('users').select('*').eq('username', name).maybeSingle();
@@ -917,12 +919,18 @@ function setGreeting() {
 }
 
 async function checkMidnightReset() {
-  const today = new Date().toISOString().split('T')[0];
+  const today   = new Date().toISOString().split('T')[0];
   const day     = me.current_day || me.currentDay || 1;
   const attempt = me.current_attempt || me.currentAttempt || 1;
+
+  // Only check if past Day 1
   if (day <= 1) return;
 
-  // Check yesterday's log
+  // Only trigger if account was created before today
+  const createdAt = me.created_at ? new Date(me.created_at).toISOString().split('T')[0] : today;
+  if (createdAt >= today) return;
+
+  // Check if yesterday's log exists and was submitted
   const yesterday = day - 1;
   let log = null;
 
@@ -935,34 +943,28 @@ async function checkMidnightReset() {
     log = users[me.username]?.logs?.[lk(attempt, yesterday)] || null;
   }
 
-  // If yesterday was never submitted and today is a new calendar day, auto fail
-  if (!log || !log.submitted) {
-    // Check if we moved past that day without submitting
-    const createdAt = me.created_at ? new Date(me.created_at).toISOString().split('T')[0] : today;
-    if (createdAt < today) {
-      // Auto fail and reset
-      if (sb) {
-        await sb.from('daily_logs').upsert({
-          user_id: me.id, attempt, day_number: yesterday,
-          log_date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-          tasks: {}, submitted: true, failed: true
-        }, { onConflict: 'user_id,attempt,day_number' });
-        const next = attempt + 1;
-        await sb.from('users').update({ current_day: 1, current_attempt: next }).eq('id', me.id);
-        me.current_day = 1; me.current_attempt = next;
-      } else {
-        const users = getLocalUsers();
-        const key2 = lk(attempt, yesterday);
-        if (!users[me.username].logs) users[me.username].logs = {};
-        users[me.username].logs[key2] = { tasks: {}, submitted: true, failed: true };
-        const next = attempt + 1;
-        users[me.username].current_day = 1;
-        users[me.username].current_attempt = next;
-        me.current_day = 1; me.current_attempt = next;
-        saveLocalUsers(users);
-      }
-      toast('Yesterday was not completed. Back to Day 1.');
+  // Only reset if yesterday existed (user was on that day) and was never submitted
+  if (log && !log.submitted) {
+    if (sb) {
+      await sb.from('daily_logs').upsert({
+        user_id: me.id, attempt, day_number: yesterday,
+        log_date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+        tasks: {}, submitted: true, failed: true
+      }, { onConflict: 'user_id,attempt,day_number' });
+      const next = attempt + 1;
+      await sb.from('users').update({ current_day: 1, current_attempt: next }).eq('id', me.id);
+      me.current_day = 1; me.current_attempt = next;
+    } else {
+      const users = getLocalUsers();
+      const key2 = lk(attempt, yesterday);
+      users[me.username].logs[key2] = { tasks: {}, submitted: true, failed: true };
+      const next = attempt + 1;
+      users[me.username].current_day = 1;
+      users[me.username].current_attempt = next;
+      me.current_day = 1; me.current_attempt = next;
+      saveLocalUsers(users);
     }
+    toast('Yesterday was not completed. Back to Day 1.');
   }
 }
 
@@ -1053,7 +1055,8 @@ function renderTaskCards(locked) {
     wrap.appendChild(card);
   });
   const allDone = Object.values(taskState).every(v => v);
-  document.getElementById('warning-text').style.display = (!locked && !allDone) ? 'block' : 'none';
+  const anyChecked = Object.values(taskState).some(v => v);
+  document.getElementById('warning-text').style.display = (!locked && !allDone && anyChecked) ? 'block' : 'none';
 }
 
 function updateLockBtn() {
@@ -1104,7 +1107,14 @@ async function submitDay() {
   const day     = me.current_day || me.currentDay || 1;
   const attempt = me.current_attempt || me.currentAttempt || 1;
   const allDone = Object.values(taskState).every(v => v);
+  const anyChecked = Object.values(taskState).some(v => v);
   const today   = new Date().toISOString().split('T')[0];
+
+  // Require at least one task checked before submitting
+  if (!anyChecked) {
+    toast("Tick at least one task before submitting.");
+    return;
+  }
 
   if (sb) {
     await sb.from('daily_logs').upsert({
