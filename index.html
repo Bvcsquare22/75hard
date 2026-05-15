@@ -463,6 +463,16 @@
 </div>
 
 <!-- CONFIG MODAL -->
+<!-- REMOVE MEMBER MODAL -->
+<div class="modal-overlay" id="remove-modal">
+  <div class="modal">
+    <div class="modal-title">REMOVE?</div>
+    <p style="font-size:13px;font-weight:500;color:var(--muted);margin-bottom:24px;line-height:1.7;" id="remove-message"></p>
+    <button class="primary-btn" id="remove-yes-btn" onclick="confirmRemoveMember()" style="margin-bottom:10px;background:var(--red);color:#fff;">REMOVE</button>
+    <button class="secondary-btn" onclick="closeRemoveModal()">Cancel</button>
+  </div>
+</div>
+
 <!-- CONFIRM SUBMIT MODAL -->
 <div class="modal-overlay" id="confirm-modal">
   <div class="modal">
@@ -1266,8 +1276,71 @@ async function renderSquad() {
       </div>
       <div class="status-badge ${cls}">${label}</div>
     `;
+
+    // Long press to remove (not yourself)
+    if (!isMe) {
+      let pressTimer;
+      card.addEventListener('touchstart', () => {
+        pressTimer = setTimeout(() => {
+          openRemoveModal(uName);
+        }, 600);
+      });
+      card.addEventListener('touchend', () => clearTimeout(pressTimer));
+      card.addEventListener('touchmove', () => clearTimeout(pressTimer));
+      card.addEventListener('mousedown', () => {
+        pressTimer = setTimeout(() => openRemoveModal(uName), 600);
+      });
+      card.addEventListener('mouseup', () => clearTimeout(pressTimer));
+      card.addEventListener('mouseleave', () => clearTimeout(pressTimer));
+      card.style.cursor = 'pointer';
+    }
+
     cards.appendChild(card);
   }
+}
+
+let memberToRemove = null;
+
+function openRemoveModal(username) {
+  memberToRemove = username;
+  document.getElementById('remove-message').textContent = `Remove ${username} from the group? Their progress will be lost.`;
+  document.getElementById('remove-modal').classList.add('open');
+}
+
+function closeRemoveModal() {
+  document.getElementById('remove-modal').classList.remove('open');
+  memberToRemove = null;
+}
+
+async function confirmRemoveMember() {
+  if (!memberToRemove) return;
+  closeRemoveModal();
+
+  if (sb) {
+    // Get user id by username
+    const { data: user } = await sb.from('users').select('id').eq('username', memberToRemove).maybeSingle();
+    if (user) {
+      await sb.from('users').update({ group_id: null }).eq('id', user.id);
+    }
+    // Remove from groups members array if stored there
+    const groups = await sb.from('groups').select('*').eq('id', myGroup.id).maybeSingle();
+  } else {
+    const groups = getLocalGroups();
+    const group = groups[myGroup.id];
+    if (group && group.members) {
+      group.members = group.members.filter(m => m !== memberToRemove);
+      saveLocalGroups(groups);
+    }
+    const users = getLocalUsers();
+    if (users[memberToRemove]) {
+      users[memberToRemove].group_id = null;
+      saveLocalUsers(users);
+    }
+  }
+
+  toast(`${memberToRemove} removed from the group.`);
+  memberToRemove = null;
+  renderSquad();
 }
 
 function copyInviteLink() {
