@@ -164,8 +164,10 @@
 
   /* APP */
   #app-screen { background: var(--cream); }
-  .app-header { padding: 18px 24px 0; display: flex; justify-content: space-between; align-items: center; }
-  .header-logo { font-family: var(--font-display); font-size: 22px; letter-spacing: 5px; color: var(--gold); }
+  .app-header { padding: 16px 24px 0; display: flex; justify-content: space-between; align-items: center; }
+  .header-left { display: flex; flex-direction: column; gap: 2px; }
+  .header-greeting { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .header-name { font-family: var(--font-display); font-size: 26px; letter-spacing: 3px; color: var(--gold); line-height: 1; }
   .header-right { display: flex; align-items: center; gap: 14px; }
   .day-pill { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink); background: var(--gold-light); border: 1px solid var(--gold-mid); padding: 5px 12px; border-radius: 20px; }
   .hdr-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 17px; padding: 2px; transition: color 0.2s; line-height: 1; }
@@ -173,10 +175,15 @@
   .reset-btn { font-size: 13px; opacity: 0.35; }
 
   .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--cream); border-top: 1px solid var(--cream-deeper); display: flex; z-index: 50; padding-bottom: env(safe-area-inset-bottom, 0); }
-  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 13px 0 11px; background: none; border: none; cursor: pointer; color: var(--muted); font-family: var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; transition: color 0.2s; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 13px 0 11px; background: none; border: none; cursor: pointer; color: var(--muted); font-family: var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; transition: all 0.2s; position: relative; }
   .nav-item.active { color: var(--ink); }
   .nav-icon { font-size: 19px; line-height: 1; transition: transform 0.2s; }
   .nav-item.active .nav-icon { transform: scale(1.12); }
+  .nav-item.squad-nav { background: var(--ink); color: var(--cream); border-radius: 12px 12px 0 0; margin: 0 4px; }
+  .nav-item.squad-nav.active { background: var(--gold); color: var(--ink); }
+  .nav-item.squad-nav .squad-dot { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; position: absolute; top: 8px; right: 24px; animation: blink 2s ease-in-out infinite; }
+  .nav-item.squad-nav.active .squad-dot { display: none; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
   .app-content { flex: 1; overflow-y: auto; padding: 0 24px 110px; }
   .tab-panel { display: none; }
@@ -381,7 +388,10 @@
 <!-- APP -->
 <div id="app-screen" class="screen">
   <header class="app-header">
-    <div class="header-logo">75H</div>
+    <div class="header-left">
+      <div class="header-greeting" id="header-greeting">Good morning</div>
+      <div class="header-name" id="header-name">CHARLES</div>
+    </div>
     <div class="header-right">
       <div class="day-pill" id="nav-day-pill">DAY 1</div>
       <button class="hdr-btn" onclick="openHistory()">📋</button>
@@ -430,7 +440,7 @@
 
   <nav class="bottom-nav">
     <button class="nav-item active" id="nav-today" onclick="switchPanel('today')"><span class="nav-icon">☀️</span>Today</button>
-    <button class="nav-item" id="nav-squad" onclick="switchPanel('squad')"><span class="nav-icon">👥</span>Squad</button>
+    <button class="nav-item squad-nav" id="nav-squad" onclick="switchPanel('squad')"><span class="squad-dot"></span><span class="nav-icon">👥</span>Squad</button>
   </nav>
 </div>
 
@@ -885,8 +895,70 @@ async function createGroup() {
 // =============================================
 function loadApp() {
   showScreen('app-screen');
+  setGreeting();
+  checkMidnightReset();
   renderToday();
   renderSquad();
+}
+
+function setGreeting() {
+  const hour = new Date().getHours();
+  let greeting = 'Good morning';
+  if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+  else if (hour >= 17) greeting = 'Good evening';
+  const name = (me.username || me.name || '').toUpperCase();
+  document.getElementById('header-greeting').textContent = greeting;
+  document.getElementById('header-name').textContent = name;
+}
+
+async function checkMidnightReset() {
+  const today = new Date().toISOString().split('T')[0];
+  const day     = me.current_day || me.currentDay || 1;
+  const attempt = me.current_attempt || me.currentAttempt || 1;
+  if (day <= 1) return;
+
+  // Check yesterday's log
+  const yesterday = day - 1;
+  let log = null;
+
+  if (sb) {
+    const { data } = await sb.from('daily_logs').select('*')
+      .eq('user_id', me.id).eq('attempt', attempt).eq('day_number', yesterday).maybeSingle();
+    log = data;
+  } else {
+    const users = getLocalUsers();
+    log = users[me.username]?.logs?.[lk(attempt, yesterday)] || null;
+  }
+
+  // If yesterday was never submitted and today is a new calendar day, auto fail
+  if (!log || !log.submitted) {
+    // Check if we moved past that day without submitting
+    const createdAt = me.created_at ? new Date(me.created_at).toISOString().split('T')[0] : today;
+    if (createdAt < today) {
+      // Auto fail and reset
+      if (sb) {
+        await sb.from('daily_logs').upsert({
+          user_id: me.id, attempt, day_number: yesterday,
+          log_date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+          tasks: {}, submitted: true, failed: true
+        }, { onConflict: 'user_id,attempt,day_number' });
+        const next = attempt + 1;
+        await sb.from('users').update({ current_day: 1, current_attempt: next }).eq('id', me.id);
+        me.current_day = 1; me.current_attempt = next;
+      } else {
+        const users = getLocalUsers();
+        const key2 = lk(attempt, yesterday);
+        if (!users[me.username].logs) users[me.username].logs = {};
+        users[me.username].logs[key2] = { tasks: {}, submitted: true, failed: true };
+        const next = attempt + 1;
+        users[me.username].current_day = 1;
+        users[me.username].current_attempt = next;
+        me.current_day = 1; me.current_attempt = next;
+        saveLocalUsers(users);
+      }
+      toast('Yesterday was not completed. Back to Day 1.');
+    }
+  }
 }
 
 function getInviteLink() {
