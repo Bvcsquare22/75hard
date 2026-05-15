@@ -463,6 +463,16 @@
 </div>
 
 <!-- CONFIG MODAL -->
+<!-- CONFIRM SUBMIT MODAL -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <div class="modal-title" id="confirm-title">HOLD ON.</div>
+    <p style="font-size:13px;font-weight:500;color:var(--muted);margin-bottom:24px;line-height:1.7;" id="confirm-message"></p>
+    <button class="primary-btn" id="confirm-yes-btn" onclick="confirmSubmit()" style="margin-bottom:10px">YES, SUBMIT</button>
+    <button class="secondary-btn" onclick="closeConfirmModal()">Go Back</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="config-modal">
   <div class="modal">
     <div class="modal-title">SUPABASE SETUP</div>
@@ -1103,18 +1113,43 @@ function renderLockedDay(log) {
   document.getElementById('submit-section').style.display = 'none';
 }
 
-async function submitDay() {
-  const day     = me.current_day || me.currentDay || 1;
-  const attempt = me.current_attempt || me.currentAttempt || 1;
-  const allDone = Object.values(taskState).every(v => v);
+function submitDay() {
+  const allDone    = Object.values(taskState).every(v => v);
   const anyChecked = Object.values(taskState).some(v => v);
-  const today   = new Date().toISOString().split('T')[0];
 
-  // Require at least one task checked before submitting
   if (!anyChecked) {
     toast("Tick at least one task before submitting.");
     return;
   }
+
+  const checked = Object.values(taskState).filter(v => v).length;
+  const total   = Object.values(taskState).length;
+
+  if (allDone) {
+    document.getElementById('confirm-title').textContent = 'ALL DONE?';
+    document.getElementById('confirm-message').textContent = `You have completed all ${total} tasks. Submit today and move to the next day?`;
+    document.getElementById('confirm-yes-btn').style.background = 'var(--gold)';
+    document.getElementById('confirm-yes-btn').style.color = 'var(--ink)';
+  } else {
+    document.getElementById('confirm-title').textContent = 'NOT DONE YET.';
+    document.getElementById('confirm-message').textContent = `You have only completed ${checked} out of ${total} tasks. Submitting now means you restart from Day 1. This cannot be undone. Are you absolutely sure?`;
+    document.getElementById('confirm-yes-btn').style.background = 'var(--red)';
+    document.getElementById('confirm-yes-btn').style.color = '#fff';
+  }
+
+  document.getElementById('confirm-modal').classList.add('open');
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirm-modal').classList.remove('open');
+}
+
+async function confirmSubmit() {
+  closeConfirmModal();
+  const day     = me.current_day || me.currentDay || 1;
+  const attempt = me.current_attempt || me.currentAttempt || 1;
+  const allDone = Object.values(taskState).every(v => v);
+  const today   = new Date().toISOString().split('T')[0];
 
   if (sb) {
     await sb.from('daily_logs').upsert({
