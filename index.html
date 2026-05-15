@@ -674,7 +674,7 @@ function switchAuth(tab) {
 }
 
 async function handleLogin() {
-  const name = document.getElementById('login-name').value.trim();
+  const name = document.getElementById('login-name').value.trim().toLowerCase();
   if (!name) { showErr('auth-err', 'Enter your name.'); return; }
   setBtnLoading('login-btn', true);
 
@@ -703,7 +703,7 @@ async function handleLogin() {
 }
 
 function goToBuildList() {
-  const name = document.getElementById('signup-name').value.trim();
+  const name = document.getElementById('signup-name').value.trim().toLowerCase();
   if (!name) { showErr('auth-err', 'Enter your name first.'); return; }
   pendingName = name;
   pendingGroupCode = null;
@@ -711,9 +711,9 @@ function goToBuildList() {
 }
 
 function goToBuildListFromJoin() {
-  const name = document.getElementById('join-name').value.trim();
+  const name = document.getElementById('join-name').value.trim().toLowerCase();
   if (!name) { showErr('join-err', 'Enter your name first.'); return; }
-  pendingName = name;
+  pendingName = name.toLowerCase();
   openBuildList();
 }
 
