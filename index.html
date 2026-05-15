@@ -426,8 +426,13 @@
 
     <div id="panel-squad" class="tab-panel">
       <div class="squad-header">
-        <div class="squad-eyebrow">Your Squad</div>
-        <div class="squad-name" id="squad-name-display">THE CREW</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="squad-eyebrow">Your Squad</div>
+            <div class="squad-name" id="squad-name-display">THE CREW</div>
+          </div>
+          <button onclick="leaveGroup()" style="background:none;border:1.5px solid var(--cream-deeper);color:var(--muted);font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:6px 12px;border-radius:4px;cursor:pointer;margin-top:8px;">Leave</button>
+        </div>
       </div>
       <div class="invite-strip">
         <div class="invite-lbl">Share this link to invite friends</div>
@@ -1140,6 +1145,27 @@ async function submitDay() {
 }
 
 // ---- SQUAD ----
+async function leaveGroup() {
+  if (!confirm('Leave this group? You can rejoin with the invite link.')) return;
+  if (sb) {
+    await sb.from('users').update({ group_id: null }).eq('id', me.id);
+  } else {
+    const users = getLocalUsers();
+    const groups = getLocalGroups();
+    const group = groups[me.group_id];
+    if (group && group.members) {
+      group.members = group.members.filter(n => n !== me.username);
+      saveLocalGroups(groups);
+    }
+    users[me.username].group_id = null;
+    saveLocalUsers(users);
+  }
+  me.group_id = null;
+  myGroup = null;
+  showSetup();
+  toast('You have left the group.');
+}
+
 async function renderSquad() {
   if (!myGroup) return;
   document.getElementById('squad-name-display').textContent = myGroup.name.toUpperCase();
