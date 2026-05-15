@@ -520,13 +520,10 @@ create policy "logs_all" on daily_logs for all using (true) with check (true);
 let sb = null;
 
 function initSupabase() {
-  const url = localStorage.getItem('sb_url');
-  const key = localStorage.getItem('sb_key');
-  if (url && key) {
-    try { sb = window.supabase.createClient(url, key); return true; }
-    catch(e) { return false; }
-  }
-  return false;
+  const url = 'https://odkvslicobbzangjvst.supabase.co';
+  const key = 'sb_publishable_jOy6ol2DOb8fb8d05eKsNA_uD84065U';
+  try { sb = window.supabase.createClient(url, key); return true; }
+  catch(e) { return false; }
 }
 
 const configured = initSupabase();
@@ -571,9 +568,7 @@ const MOTIVATORS = [
 //  BOOT
 // =============================================
 window.addEventListener('load', async () => {
-  if (!configured) {
-    document.getElementById('config-banner').style.display = 'block';
-  }
+  // credentials hardcoded
 
   // Check for invite code in URL
   const params = new URLSearchParams(window.location.search);
