@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>75 HARD</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cabinet+Grotesk:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --cream: #F0EBE1;
+    --cream-dark: #E6DFD3;
+    --cream-deeper: #D9D0C3;
+    --ink: #0D0D0D;
+    --ink-light: #3a3530;
+    --muted: #9a9188;
+    --gold: #D4A843;
+    --gold-light: rgba(212,168,67,0.13);
+    --gold-mid: rgba(212,168,67,0.35);
+    --red: #b5392a;
+    --green: #3a7d5a;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Cabinet Grotesk', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.06'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.5;
+  }
+
+  /* CONFIG BANNER */
+  #config-banner {
+    background: #1a1200;
+    border-bottom: 2px solid var(--gold);
+    padding: 10px 20px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--gold);
+    font-family: var(--font-body);
+    font-weight: 600;
+    display: none;
+    position: relative;
+    z-index: 2000;
+  }
+
+  #config-banner a { color: var(--gold); text-decoration: underline; cursor: pointer; }
+
+  .screen { display: none; min-height: 100vh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* LOADING */
+  #loading-screen {
+    align-items: center;
+    justify-content: center;
+    background: var(--cream);
+  }
+
+  .loading-logo { font-family: var(--font-display); font-size: 80px; color: var(--gold); letter-spacing: -2px; animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* AUTH */
+  #auth-screen { align-items: center; justify-content: center; padding: 48px 28px; }
+  .auth-wrap { width: 100%; max-width: 360px; }
+
+  .logo-area { margin-bottom: 52px; }
+  .logo-num { font-family: var(--font-display); font-size: 108px; line-height: 0.88; color: var(--ink); display: block; letter-spacing: -2px; }
+  .logo-word { font-family: var(--font-display); font-size: 38px; letter-spacing: 16px; color: var(--gold); display: block; margin-top: 6px; }
+  .logo-rule { height: 2px; background: var(--ink); width: 56px; margin-top: 18px; }
+  .logo-sub { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 11px; }
+
+  .auth-toggle { display: flex; border-bottom: 1.5px solid var(--cream-deeper); margin-bottom: 28px; }
+  .toggle-btn { flex: 1; padding: 12px 0; background: none; border: none; font-family: var(--font-body); font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1.5px; transition: all 0.2s; }
+  .toggle-btn.active { color: var(--ink); border-bottom-color: var(--gold); }
+
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .field input { width: 100%; background: transparent; border: none; border-bottom: 1.5px solid var(--cream-deeper); color: var(--ink); padding: 10px 0; font-family: var(--font-body); font-size: 16px; font-weight: 600; outline: none; transition: border-color 0.2s; border-radius: 0; appearance: none; }
+  .field input:focus { border-bottom-color: var(--gold); }
+  .field input::placeholder { color: var(--cream-deeper); font-weight: 400; }
+
+  .primary-btn { width: 100%; padding: 16px; background: var(--ink); color: var(--cream); border: none; font-family: var(--font-display); font-size: 22px; letter-spacing: 4px; cursor: pointer; border-radius: 4px; transition: background 0.2s; margin-bottom: 10px; }
+  .primary-btn:hover { background: var(--gold); color: var(--ink); }
+  .primary-btn:active { transform: scale(0.98); }
+  .primary-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .secondary-btn { width: 100%; padding: 14px; background: transparent; color: var(--ink); border: 1.5px solid var(--cream-deeper); font-family: var(--font-body); font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: all 0.2s; margin-bottom: 10px; }
+  .secondary-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  .err { font-size: 12px; font-weight: 600; color: var(--red); margin-bottom: 14px; display: none; padding: 10px 14px; background: rgba(181,57,42,0.07); border-radius: 4px; border-left: 3px solid var(--red); }
+
+  .section-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+  .section-divider::before, .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--cream-deeper); }
+  .section-divider span { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+
+  /* JOINING SCREEN */
+  #join-screen { align-items: center; justify-content: center; padding: 48px 28px; }
+  .join-wrap { width: 100%; max-width: 360px; text-align: center; }
+  .join-group-name { font-family: var(--font-display); font-size: 52px; line-height: 0.92; color: var(--ink); margin-bottom: 8px; }
+  .join-sub { font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 36px; line-height: 1.6; }
+
+  /* BUILD LIST */
+  #build-screen { overflow-y: auto; }
+  .build-wrap { width: 100%; max-width: 480px; margin: 0 auto; padding: 48px 28px 60px; }
+  .build-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+  .build-title { font-family: var(--font-display); font-size: 56px; line-height: 0.92; margin-bottom: 6px; }
+  .build-sub { font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 32px; line-height: 1.6; }
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; margin-top: 28px; }
+
+  .mandatory-list { display: flex; flex-direction: column; gap: 8px; }
+  .mandatory-card { background: white; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(13,13,13,0.05); border: 1.5px solid var(--cream-deeper); opacity: 0.7; }
+  .mandatory-icon { font-size: 20px; width: 36px; height: 36px; background: var(--cream); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .mandatory-body { flex: 1; }
+  .mandatory-name { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .mandatory-desc { font-size: 11px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+  .locked-tag { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); background: var(--cream-dark); padding: 3px 8px; border-radius: 2px; flex-shrink: 0; }
+
+  .optional-list { display: flex; flex-direction: column; gap: 8px; }
+  .optional-card { background: white; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(13,13,13,0.05); border: 1.5px solid transparent; cursor: pointer; transition: all 0.2s; user-select: none; animation: riseUp 0.3s ease both; }
+  .optional-card:active { transform: scale(0.98); }
+  .optional-card.selected { border-color: var(--gold-mid); background: #fffdf6; }
+  .opt-icon { font-size: 20px; width: 36px; height: 36px; background: var(--cream); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s; }
+  .optional-card.selected .opt-icon { background: var(--gold-light); }
+  .opt-body { flex: 1; }
+  .opt-name { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .opt-desc { font-size: 11px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+  .opt-toggle { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--cream-deeper); display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: 700; flex-shrink: 0; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .optional-card.selected .opt-toggle { background: var(--gold); border-color: var(--gold); }
+
+  .custom-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .custom-task-row { background: white; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(13,13,13,0.05); border: 1.5px solid var(--gold-mid); animation: riseUp 0.2s ease both; }
+  .custom-task-name { flex: 1; font-size: 14px; font-weight: 600; color: var(--ink); }
+  .remove-custom { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px; transition: color 0.2s; flex-shrink: 0; }
+  .remove-custom:hover { color: var(--red); }
+  .add-custom-row { display: flex; gap: 10px; align-items: center; }
+  .add-custom-input { flex: 1; background: white; border: 1.5px solid var(--cream-deeper); border-radius: 8px; padding: 11px 14px; font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .add-custom-input:focus { border-color: var(--gold); }
+  .add-custom-input::placeholder { color: var(--muted); font-weight: 400; }
+  .add-custom-btn { background: var(--ink); color: var(--cream); border: none; border-radius: 8px; padding: 11px 16px; font-family: var(--font-body); font-size: 12px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+  .add-custom-btn:hover { background: var(--gold); color: var(--ink); }
+
+  .build-footer { margin-top: 36px; }
+  .task-count-note { font-size: 12px; font-weight: 500; color: var(--muted); text-align: center; margin-bottom: 14px; }
+
+  /* SETUP (create group) */
+  #setup-screen { padding: 48px 28px; align-items: center; justify-content: center; }
+  .setup-wrap { width: 100%; max-width: 380px; }
+  .setup-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
+  .setup-title { font-family: var(--font-display); font-size: 60px; line-height: 0.92; margin-bottom: 36px; }
+
+  /* APP */
+  #app-screen { background: var(--cream); }
+  .app-header { padding: 18px 24px 0; display: flex; justify-content: space-between; align-items: center; }
+  .header-logo { font-family: var(--font-display); font-size: 22px; letter-spacing: 5px; color: var(--gold); }
+  .header-right { display: flex; align-items: center; gap: 14px; }
+  .day-pill { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink); background: var(--gold-light); border: 1px solid var(--gold-mid); padding: 5px 12px; border-radius: 20px; }
+  .hdr-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 17px; padding: 2px; transition: color 0.2s; line-height: 1; }
+  .hdr-btn:hover { color: var(--ink); }
+  .reset-btn { font-size: 13px; opacity: 0.35; }
+
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--cream); border-top: 1px solid var(--cream-deeper); display: flex; z-index: 50; padding-bottom: env(safe-area-inset-bottom, 0); }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 13px 0 11px; background: none; border: none; cursor: pointer; color: var(--muted); font-family: var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; transition: color 0.2s; }
+  .nav-item.active { color: var(--ink); }
+  .nav-icon { font-size: 19px; line-height: 1; transition: transform 0.2s; }
+  .nav-item.active .nav-icon { transform: scale(1.12); }
+
+  .app-content { flex: 1; overflow-y: auto; padding: 0 24px 110px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* TODAY */
+  .today-hero { padding: 24px 0 18px; border-bottom: 1px solid var(--cream-deeper); margin-bottom: 24px; }
+  .today-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .today-day { font-family: var(--font-display); font-size: 100px; line-height: 0.88; color: var(--ink); letter-spacing: -2px; display: block; }
+  .today-date-line { font-size: 14px; font-weight: 500; color: var(--muted); margin-top: 10px; display: flex; align-items: center; gap: 10px; }
+  .attempt-chip { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); background: var(--gold-light); padding: 3px 8px; border-radius: 2px; display: none; }
+  .motivator { font-size: 12px; font-weight: 600; color: var(--ink-light); margin-top: 6px; font-style: italic; }
+
+  .seventy-bar { background: white; border-radius: 10px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(13,13,13,0.05); margin-bottom: 22px; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .bar-track { height: 4px; background: var(--cream-dark); border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+
+  .icon-strip { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .icon-node { width: calc((100% - 36px) / 7); min-width: 36px; aspect-ratio: 1; border-radius: 8px; background: white; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 1px 3px rgba(13,13,13,0.05); transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); border: 1.5px solid transparent; position: relative; flex-shrink: 0; }
+  .icon-node.done { background: var(--gold-light); border-color: var(--gold-mid); transform: scale(1.05); }
+  .icon-node.done::after { content: '✓'; position: absolute; bottom: -3px; right: -3px; width: 13px; height: 13px; background: var(--gold); color: white; border-radius: 50%; font-size: 7px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 13px; text-align: center; }
+
+  @keyframes riseUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes checkBounce { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 70% { transform: scale(0.92); } 100% { transform: scale(1); } }
+
+  .tasks-wrap { display: flex; flex-direction: column; gap: 9px; margin-bottom: 24px; }
+  .task-card { background: white; border-radius: 10px; padding: 15px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: border-color 0.2s, background 0.2s; box-shadow: 0 1px 3px rgba(13,13,13,0.05); user-select: none; animation: riseUp 0.3s ease both; border: 1.5px solid transparent; }
+  .task-card:active:not(.locked) { transform: scale(0.985); }
+  .task-card.checked { border-color: var(--gold-mid); background: #fffdf6; }
+  .task-card.locked { cursor: default; }
+  .task-icon-box { width: 38px; height: 38px; border-radius: 9px; background: var(--cream); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; transition: background 0.2s; }
+  .task-card.checked .task-icon-box { background: var(--gold-light); }
+  .task-body { flex: 1; min-width: 0; }
+  .task-name { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+  .task-desc { font-size: 11px; font-weight: 500; color: var(--muted); }
+  .task-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--cream-deeper); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s, border-color 0.2s; font-size: 12px; color: white; font-weight: 700; }
+  .task-card.checked .task-check { background: var(--gold); border-color: var(--gold); animation: checkBounce 0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+  .status-complete { background: rgba(58,125,90,0.07); border: 1px solid rgba(58,125,90,0.2); border-radius: 10px; padding: 20px; text-align: center; margin-bottom: 18px; animation: riseUp 0.3s ease both; }
+  .status-complete .s-title { font-family: var(--font-display); font-size: 26px; letter-spacing: 3px; color: var(--green); }
+  .status-complete .s-sub { font-size: 12px; font-weight: 500; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .status-failed { background: rgba(181,57,42,0.06); border: 1px solid rgba(181,57,42,0.18); border-radius: 10px; padding: 20px; text-align: center; margin-bottom: 18px; animation: riseUp 0.3s ease both; }
+  .status-failed .s-title { font-family: var(--font-display); font-size: 26px; letter-spacing: 3px; color: var(--red); }
+  .status-failed .s-sub { font-size: 12px; font-weight: 500; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+  .warning-text { font-size: 12px; font-weight: 600; color: var(--muted); text-align: center; margin-bottom: 12px; line-height: 1.6; display: none; }
+  .lock-btn { width: 100%; padding: 18px; background: var(--ink); color: var(--cream); border: none; font-family: var(--font-display); font-size: 24px; letter-spacing: 5px; cursor: pointer; border-radius: 10px; transition: background 0.25s; }
+  .lock-btn.all-done { background: var(--gold); color: var(--ink); animation: pulseGold 2s ease-in-out infinite; }
+  @keyframes pulseGold { 0%, 100% { box-shadow: 0 0 0 0 rgba(212,168,67,0.4); } 50% { box-shadow: 0 0 0 10px rgba(212,168,67,0); } }
+  .lock-btn:active { transform: scale(0.98); }
+
+  /* SQUAD */
+  .squad-header { padding: 24px 0 18px; border-bottom: 1px solid var(--cream-deeper); margin-bottom: 22px; }
+  .squad-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .squad-name { font-family: var(--font-display); font-size: 50px; line-height: 0.92; color: var(--ink); }
+
+  .invite-strip { background: white; border-radius: 10px; padding: 14px 18px; margin-bottom: 22px; box-shadow: 0 1px 3px rgba(13,13,13,0.05); }
+  .invite-lbl { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .invite-link-text { font-size: 12px; font-weight: 600; color: var(--ink-light); word-break: break-all; background: var(--cream); padding: 10px 12px; border-radius: 6px; margin-bottom: 10px; font-family: monospace; }
+  .copy-btn { width: 100%; background: var(--ink); color: var(--cream); border: none; padding: 12px; border-radius: 6px; font-family: var(--font-body); font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; transition: background 0.2s; }
+  .copy-btn:hover { background: var(--gold); color: var(--ink); }
+
+  .member-cards { display: flex; flex-direction: column; gap: 9px; }
+  .member-card { background: white; border-radius: 10px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(13,13,13,0.05); animation: riseUp 0.3s ease both; }
+  .member-av { width: 42px; height: 42px; border-radius: 50%; background: var(--cream-dark); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 19px; color: var(--ink); flex-shrink: 0; border: 2px solid var(--cream-deeper); }
+  .member-info { flex: 1; min-width: 0; }
+  .member-name-row { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 3px; display: flex; align-items: center; gap: 7px; }
+  .you-tag { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); background: var(--gold-light); padding: 2px 6px; border-radius: 2px; }
+  .member-sub { font-size: 11px; font-weight: 500; color: var(--muted); }
+  .status-badge { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 5px 11px; border-radius: 20px; flex-shrink: 0; }
+  .status-badge.done { background: rgba(58,125,90,0.1); color: var(--green); }
+  .status-badge.failed { background: rgba(181,57,42,0.09); color: var(--red); }
+  .status-badge.pending { background: var(--cream-dark); color: var(--muted); }
+
+  /* HISTORY */
+  .history-panel { position: fixed; inset: 0; background: var(--cream); z-index: 200; display: none; flex-direction: column; padding: 52px 24px 40px; overflow-y: auto; }
+  .history-panel.open { display: flex; }
+  .history-close { position: absolute; top: 18px; right: 22px; background: none; border: none; font-size: 22px; cursor: pointer; color: var(--muted); }
+  .history-title { font-family: var(--font-display); font-size: 50px; line-height: 0.92; margin-bottom: 28px; }
+  .legend { display: flex; gap: 16px; margin-bottom: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; color: var(--muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 28px; }
+  .cal-cell { aspect-ratio: 1; border-radius: 4px; background: white; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: var(--muted); box-shadow: 0 1px 2px rgba(13,13,13,0.04); }
+  .cal-cell.done { background: rgba(58,125,90,0.14); color: var(--green); }
+  .cal-cell.fail { background: rgba(181,57,42,0.11); color: var(--red); }
+  .cal-cell.now { outline: 2px solid var(--gold); color: var(--gold); }
+  .hist-stats { display: flex; gap: 10px; }
+  .hist-stat { flex: 1; background: white; border-radius: 10px; padding: 16px 10px; text-align: center; box-shadow: 0 1px 3px rgba(13,13,13,0.05); }
+  .hist-num { font-family: var(--font-display); font-size: 40px; }
+  .hist-num.g { color: var(--green); } .hist-num.r { color: var(--red); } .hist-num.gold { color: var(--gold); }
+  .hist-lbl { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+
+  /* CONFIG MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--cream); border-radius: 12px; padding: 28px; width: 100%; max-width: 380px; }
+  .modal-title { font-family: var(--font-display); font-size: 32px; letter-spacing: 2px; margin-bottom: 8px; }
+  .modal-sub { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+  .sql-block { background: var(--ink); color: #a8c8a0; padding: 12px; border-radius: 6px; font-size: 10px; font-family: monospace; line-height: 1.6; overflow-x: auto; white-space: pre; margin-bottom: 20px; max-height: 200px; overflow-y: auto; }
+
+  .toast { position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%) translateY(50px); background: var(--ink); color: var(--cream); padding: 11px 22px; border-radius: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; z-index: 999; transition: transform 0.3s ease, opacity 0.3s ease; opacity: 0; white-space: nowrap; max-width: 90vw; text-align: center; }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="config-banner">
+  Supabase not connected. <a onclick="openConfigModal()">Add your credentials</a> to go live.
+</div>
+
+<!-- LOADING -->
+<div id="loading-screen" class="screen active">
+  <div class="loading-logo">75</div>
+</div>
+
+<!-- AUTH -->
+<div id="auth-screen" class="screen">
+  <div class="auth-wrap">
+    <div class="logo-area">
+      <span class="logo-num">75</span>
+      <span class="logo-word">HARD</span>
+      <div class="logo-rule"></div>
+      <p class="logo-sub">You either did it or you didn't.</p>
+    </div>
+    <div class="auth-toggle">
+      <button class="toggle-btn active" id="tab-login-btn" onclick="switchAuth('login')">Login</button>
+      <button class="toggle-btn" id="tab-signup-btn" onclick="switchAuth('signup')">Sign Up</button>
+    </div>
+    <div class="err" id="auth-err"></div>
+    <div id="login-form">
+      <div class="field"><label>Your Name</label><input type="text" id="login-name" placeholder="Enter your name" onkeydown="if(event.key==='Enter')handleLogin()"></div>
+      <button class="primary-btn" id="login-btn" onclick="handleLogin()">ENTER</button>
+    </div>
+    <div id="signup-form" style="display:none">
+      <div class="field"><label>Your Name</label><input type="text" id="signup-name" placeholder="What should we call you?" onkeydown="if(event.key==='Enter')goToBuildList()"></div>
+      <button class="primary-btn" onclick="goToBuildList()">NEXT</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTO JOIN SCREEN -->
+<div id="join-screen" class="screen">
+  <div class="join-wrap">
+    <div class="logo-area" style="text-align:center">
+      <span class="logo-num" style="font-size:72px">75</span>
+      <span class="logo-word">HARD</span>
+    </div>
+    <div class="join-group-name" id="join-group-name">THE CREW</div>
+    <p class="join-sub">You've been invited. Enter your name to join.</p>
+    <div class="err" id="join-err"></div>
+    <div class="field"><label>Your Name</label><input type="text" id="join-name" placeholder="What should we call you?"></div>
+    <button class="primary-btn" onclick="goToBuildListFromJoin()">JOIN THE CHALLENGE</button>
+  </div>
+</div>
+
+<!-- BUILD LIST -->
+<div id="build-screen" class="screen">
+  <div class="build-wrap">
+    <div class="build-eyebrow">Hey <span id="build-name-display"></span>,</div>
+    <div class="build-title">BUILD<br>YOUR LIST</div>
+    <div class="build-sub">Four things are non-negotiable. Everything else is yours to choose.</div>
+
+    <div class="section-label">Always on your list</div>
+    <div class="mandatory-list">
+      <div class="mandatory-card"><div class="mandatory-icon">💪</div><div class="mandatory-body"><div class="mandatory-name">Workout</div><div class="mandatory-desc">45 minutes, any type</div></div><div class="locked-tag">Required</div></div>
+      <div class="mandatory-card"><div class="mandatory-icon">💧</div><div class="mandatory-body"><div class="mandatory-name">One Gallon of Water</div><div class="mandatory-desc">3.78 liters minimum</div></div><div class="locked-tag">Required</div></div>
+      <div class="mandatory-card"><div class="mandatory-icon">🥗</div><div class="mandatory-body"><div class="mandatory-name">Follow Your Diet</div><div class="mandatory-desc">No alcohol, no cheat meals</div></div><div class="locked-tag">Required</div></div>
+      <div class="mandatory-card"><div class="mandatory-icon">📸</div><div class="mandatory-body"><div class="mandatory-name">Progress Photo</div><div class="mandatory-desc">One photo every day</div></div><div class="locked-tag">Required</div></div>
+    </div>
+
+    <div class="section-label">Add to your list</div>
+    <div class="optional-list" id="optional-list"></div>
+
+    <div class="section-label">Your own rules</div>
+    <div class="custom-list" id="custom-list"></div>
+    <div class="add-custom-row">
+      <input type="text" class="add-custom-input" id="custom-input" placeholder="Type your own task..." onkeydown="if(event.key==='Enter')addCustomTask()">
+      <button class="add-custom-btn" onclick="addCustomTask()">Add</button>
+    </div>
+
+    <div class="build-footer">
+      <div class="task-count-note" id="task-count-note">4 tasks locked in</div>
+      <button class="primary-btn" id="build-done-btn" onclick="finishBuildList()">LOOKS GOOD</button>
+      <div class="err" id="build-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP (create group) -->
+<div id="setup-screen" class="screen">
+  <div class="setup-wrap">
+    <div class="setup-eyebrow">You're in, <span id="setup-name"></span></div>
+    <div class="setup-title">CREATE<br>YOUR GROUP</div>
+    <div class="field"><label>Group Name</label><input type="text" id="grp-name" placeholder="e.g. The Hard Squad"></div>
+    <button class="primary-btn" id="create-group-btn" onclick="createGroup()">CREATE &amp; START</button>
+    <div class="err" id="setup-err" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="screen">
+  <header class="app-header">
+    <div class="header-logo">75H</div>
+    <div class="header-right">
+      <div class="day-pill" id="nav-day-pill">DAY 1</div>
+      <button class="hdr-btn" onclick="openHistory()">📋</button>
+      <button class="hdr-btn" onclick="signOut()">⏻</button>
+      <button class="hdr-btn reset-btn" title="Reset all data" onclick="resetApp()">↺</button>
+    </div>
+  </header>
+
+  <div class="app-content">
+    <div id="panel-today" class="tab-panel active">
+      <div class="today-hero">
+        <div class="today-eyebrow">Today</div>
+        <span class="today-day" id="today-day-num">1</span>
+        <div class="today-date-line">
+          <span id="today-date-str"></span>
+          <span class="attempt-chip" id="attempt-chip"></span>
+        </div>
+        <div class="motivator" id="motivator-line"></div>
+      </div>
+      <div class="seventy-bar">
+        <div class="bar-label"><span>To 75</span><span id="bar-label-text">0 / 75</span></div>
+        <div class="bar-track"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div>
+      </div>
+      <div class="icon-strip" id="icon-strip"></div>
+      <div id="status-banner"></div>
+      <div class="tasks-wrap" id="tasks-wrap"></div>
+      <div id="submit-section">
+        <div class="warning-text" id="warning-text">Miss one thing and you're back to Day 1. That's just how this works.</div>
+        <button class="lock-btn" id="lock-btn" onclick="submitDay()">LOCK IN TODAY</button>
+      </div>
+    </div>
+
+    <div id="panel-squad" class="tab-panel">
+      <div class="squad-header">
+        <div class="squad-eyebrow">Your Squad</div>
+        <div class="squad-name" id="squad-name-display">THE CREW</div>
+      </div>
+      <div class="invite-strip">
+        <div class="invite-lbl">Share this link to invite friends</div>
+        <div class="invite-link-text" id="invite-link-display"></div>
+        <button class="copy-btn" onclick="copyInviteLink()">Copy Invite Link</button>
+      </div>
+      <div class="member-cards" id="member-cards"></div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-today" onclick="switchPanel('today')"><span class="nav-icon">☀️</span>Today</button>
+    <button class="nav-item" id="nav-squad" onclick="switchPanel('squad')"><span class="nav-icon">👥</span>Squad</button>
+  </nav>
+</div>
+
+<!-- HISTORY -->
+<div class="history-panel" id="history-panel">
+  <button class="history-close" onclick="closeHistory()">✕</button>
+  <div class="history-title">YOUR<br>HISTORY</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(58,125,90,0.5)"></div>Complete</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(181,57,42,0.45)"></div>Failed</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--cream-dark)"></div>Pending</div>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="hist-stats" id="hist-stats"></div>
+</div>
+
+<!-- CONFIG MODAL -->
+<div class="modal-overlay" id="config-modal">
+  <div class="modal">
+    <div class="modal-title">SUPABASE SETUP</div>
+    <div class="modal-sub">Create a free project at supabase.com, paste your credentials, then run the SQL in your Supabase SQL editor.</div>
+    <div class="field"><label>Project URL</label><input type="text" id="sb-url" placeholder="https://xxx.supabase.co"></div>
+    <div class="field"><label>Anon Key</label><input type="text" id="sb-key" placeholder="eyJ..."></div>
+    <button class="primary-btn" onclick="saveConfig()">SAVE &amp; RELOAD</button>
+    <button class="secondary-btn" onclick="closeConfigModal()">Cancel</button>
+    <div style="margin-top:16px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Run this SQL in Supabase</div>
+      <div class="sql-block" id="sql-block"></div>
+      <button class="secondary-btn" onclick="copySQL()" style="margin-top:8px">Copy SQL</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =============================================
+//  SQL SCHEMA
+// =============================================
+const SQL_SCHEMA = `
+create table if not exists users (
+  id uuid primary key default gen_random_uuid(),
+  username text unique not null,
+  tasks jsonb default '[]',
+  group_id uuid,
+  current_day int default 1,
+  current_attempt int default 1,
+  created_at timestamptz default now()
+);
+
+create table if not exists groups (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  invite_code text unique not null,
+  created_by uuid references users(id),
+  created_at timestamptz default now()
+);
+
+alter table users add constraint fk_group
+  foreign key (group_id) references groups(id);
+
+create table if not exists daily_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  attempt int not null,
+  day_number int not null,
+  log_date date not null,
+  tasks jsonb not null default '{}',
+  submitted boolean default false,
+  failed boolean default false,
+  created_at timestamptz default now(),
+  unique(user_id, attempt, day_number)
+);
+
+alter table users enable row level security;
+alter table groups enable row level security;
+alter table daily_logs enable row level security;
+
+create policy "users_all" on users for all using (true) with check (true);
+create policy "groups_all" on groups for all using (true) with check (true);
+create policy "logs_all" on daily_logs for all using (true) with check (true);
+`.trim();
+
+// =============================================
+//  SUPABASE INIT
+// =============================================
+let sb = null;
+
+function initSupabase() {
+  const url = localStorage.getItem('sb_url');
+  const key = localStorage.getItem('sb_key');
+  if (url && key) {
+    try { sb = window.supabase.createClient(url, key); return true; }
+    catch(e) { return false; }
+  }
+  return false;
+}
+
+const configured = initSupabase();
+
+// =============================================
+//  STATE
+// =============================================
+let me = null;
+let myGroup = null;
+let pendingName = '';
+let pendingGroupCode = null;
+let selectedOptionals = {};
+let customTasks = [];
+let taskState = {};
+
+const MANDATORY_TASKS = [
+  { key:'workout', icon:'💪', name:'Workout',            desc:'45 minutes, any type' },
+  { key:'water',   icon:'💧', name:'One Gallon of Water', desc:'3.78 liters minimum' },
+  { key:'diet',    icon:'🥗', name:'Follow Your Diet',    desc:'No alcohol, no cheat meals' },
+  { key:'photo',   icon:'📸', name:'Progress Photo',      desc:'One photo every day' },
+];
+
+const OPTIONAL_PRESETS = [
+  { key:'workout2',     icon:'🌤', name:'Second Workout (Outdoor)', desc:'45 minutes outside' },
+  { key:'fiction',      icon:'📚', name:'Read 10 Pages of Fiction',  desc:'Any fiction book' },
+  { key:'scripture',    icon:'✝️', name:'Read the Scripture',        desc:'10 pages minimum' },
+  { key:'thankfulness', icon:'🙏', name:'Thankfulness List',         desc:'Write what you are grateful for today' },
+  { key:'prayer',       icon:'🕊️', name:'Prayer and Devotion',       desc:'Spend time in prayer' },
+  { key:'noyelling',    icon:'🤫', name:'No Yelling',                desc:'Keep your voice and your peace' },
+];
+
+const MOTIVATORS = [
+  { min:1,  max:10, text:"Day one energy. Don't lose it." },
+  { min:11, max:25, text:"You've started. That's already more than most." },
+  { min:26, max:40, text:"Halfway there. This is where it gets real." },
+  { min:41, max:60, text:"You're in the hard part now. Keep going." },
+  { min:61, max:74, text:"You can see the finish line from here." },
+  { min:75, max:75, text:"This is it. Last one." },
+];
+
+// =============================================
+//  BOOT
+// =============================================
+window.addEventListener('load', async () => {
+  if (!configured) {
+    document.getElementById('config-banner').style.display = 'block';
+  }
+
+  // Check for invite code in URL
+  const params = new URLSearchParams(window.location.search);
+  const urlCode = params.get('code');
+
+  if (!configured) {
+    // Fall back to local storage mode
+    bootLocal(urlCode);
+    return;
+  }
+
+  // Check if already logged in
+  const savedUsername = localStorage.getItem('75h_username');
+  if (savedUsername) {
+    const { data: user } = await sb.from('users').select('*').eq('username', savedUsername).maybeSingle();
+    if (user) {
+      me = user;
+      if (me.group_id) {
+        const { data: group } = await sb.from('groups').select('*').eq('id', me.group_id).maybeSingle();
+        myGroup = group;
+        loadApp();
+        return;
+      } else {
+        showSetup();
+        return;
+      }
+    }
+  }
+
+  // Handle invite code from URL
+  if (urlCode) {
+    const { data: group } = await sb.from('groups').select('*').eq('invite_code', urlCode).maybeSingle();
+    if (group) {
+      pendingGroupCode = urlCode;
+      document.getElementById('join-group-name').textContent = group.name.toUpperCase();
+      showScreen('join-screen');
+      return;
+    }
+  }
+
+  showScreen('auth-screen');
+});
+
+// LOCAL STORAGE FALLBACK
+function bootLocal(urlCode) {
+  const users  = getLocalUsers();
+  const name   = localStorage.getItem('75h_username');
+  if (name && users[name]) {
+    me = users[name];
+    const groups = getLocalGroups();
+    if (me.group_id && groups[me.group_id]) {
+      myGroup = groups[me.group_id];
+      loadApp();
+      return;
+    } else {
+      showSetup();
+      return;
+    }
+  }
+  if (urlCode) {
+    const groups = getLocalGroups();
+    const group  = Object.values(groups).find(g => g.invite_code === urlCode);
+    if (group) {
+      pendingGroupCode = urlCode;
+      document.getElementById('join-group-name').textContent = group.name.toUpperCase();
+      showScreen('join-screen');
+      return;
+    }
+  }
+  showScreen('auth-screen');
+}
+
+// LOCAL STORAGE HELPERS
+const getLocalUsers  = () => JSON.parse(localStorage.getItem('75h_users')  || '{}');
+const saveLocalUsers = u  => localStorage.setItem('75h_users',  JSON.stringify(u));
+const getLocalGroups = () => JSON.parse(localStorage.getItem('75h_groups') || '{}');
+const saveLocalGroups= g  => localStorage.setItem('75h_groups', JSON.stringify(g));
+
+// =============================================
+//  AUTH
+// =============================================
+function switchAuth(tab) {
+  document.getElementById('login-form').style.display  = tab === 'login'  ? 'block' : 'none';
+  document.getElementById('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
+  document.getElementById('tab-login-btn').classList.toggle('active',  tab === 'login');
+  document.getElementById('tab-signup-btn').classList.toggle('active', tab === 'signup');
+  hideErr('auth-err');
+}
+
+async function handleLogin() {
+  const name = document.getElementById('login-name').value.trim();
+  if (!name) { showErr('auth-err', 'Enter your name.'); return; }
+  setBtnLoading('login-btn', true);
+
+  if (sb) {
+    const { data: user } = await sb.from('users').select('*').eq('username', name).maybeSingle();
+    if (!user) { showErr('auth-err', "We don't know you yet. Sign up first."); setBtnLoading('login-btn', false); return; }
+    me = user;
+    localStorage.setItem('75h_username', name);
+    if (me.group_id) {
+      const { data: group } = await sb.from('groups').select('*').eq('id', me.group_id).maybeSingle();
+      myGroup = group;
+      loadApp();
+    } else {
+      showSetup();
+    }
+  } else {
+    const users = getLocalUsers();
+    if (!users[name]) { showErr('auth-err', "We don't know you yet. Sign up first."); setBtnLoading('login-btn', false); return; }
+    me = users[name];
+    localStorage.setItem('75h_username', name);
+    const groups = getLocalGroups();
+    if (me.group_id && groups[me.group_id]) { myGroup = groups[me.group_id]; loadApp(); }
+    else showSetup();
+  }
+  setBtnLoading('login-btn', false);
+}
+
+function goToBuildList() {
+  const name = document.getElementById('signup-name').value.trim();
+  if (!name) { showErr('auth-err', 'Enter your name first.'); return; }
+  pendingName = name;
+  pendingGroupCode = null;
+  openBuildList();
+}
+
+function goToBuildListFromJoin() {
+  const name = document.getElementById('join-name').value.trim();
+  if (!name) { showErr('join-err', 'Enter your name first.'); return; }
+  pendingName = name;
+  openBuildList();
+}
+
+function openBuildList() {
+  selectedOptionals = {};
+  customTasks = [];
+  document.getElementById('build-name-display').textContent = pendingName;
+  renderOptionalList();
+  renderCustomList();
+  updateTaskCount();
+  showScreen('build-screen');
+}
+
+function signOut() {
+  localStorage.removeItem('75h_username');
+  me = null; myGroup = null;
+  showScreen('auth-screen');
+}
+
+async function resetApp() {
+  if (!confirm('Delete everything and start fresh?')) return;
+  localStorage.clear();
+  me = null; myGroup = null;
+  window.location.href = window.location.pathname;
+}
+
+// =============================================
+//  BUILD LIST
+// =============================================
+function renderOptionalList() {
+  const list = document.getElementById('optional-list');
+  list.innerHTML = '';
+  OPTIONAL_PRESETS.forEach((t, i) => {
+    const selected = !!selectedOptionals[t.key];
+    const card = document.createElement('div');
+    card.className = `optional-card${selected ? ' selected' : ''}`;
+    card.style.animationDelay = `${i * 0.04}s`;
+    card.onclick = () => toggleOptional(t.key);
+    card.innerHTML = `<div class="opt-icon">${t.icon}</div><div class="opt-body"><div class="opt-name">${t.name}</div><div class="opt-desc">${t.desc}</div></div><div class="opt-toggle">${selected ? '✓' : ''}</div>`;
+    list.appendChild(card);
+  });
+}
+
+function toggleOptional(key) {
+  selectedOptionals[key] = !selectedOptionals[key];
+  if (!selectedOptionals[key]) delete selectedOptionals[key];
+  renderOptionalList();
+  updateTaskCount();
+}
+
+function addCustomTask() {
+  const input = document.getElementById('custom-input');
+  const val   = input.value.trim();
+  if (!val) return;
+  customTasks.push({ key: `custom_${Date.now()}`, icon: '⭐', name: val, desc: 'Your personal rule' });
+  input.value = '';
+  renderCustomList();
+  updateTaskCount();
+}
+
+function renderCustomList() {
+  const list = document.getElementById('custom-list');
+  list.innerHTML = '';
+  customTasks.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'custom-task-row';
+    row.innerHTML = `<div style="font-size:18px">${t.icon}</div><div class="custom-task-name">${t.name}</div><button class="remove-custom" onclick="removeCustom(${i})">✕</button>`;
+    list.appendChild(row);
+  });
+}
+
+function removeCustom(i) { customTasks.splice(i, 1); renderCustomList(); updateTaskCount(); }
+
+function updateTaskCount() {
+  const total = MANDATORY_TASKS.length + Object.keys(selectedOptionals).length + customTasks.length;
+  document.getElementById('task-count-note').textContent = `${total} task${total !== 1 ? 's' : ''} on your list`;
+}
+
+async function finishBuildList() {
+  const optionalSelected = OPTIONAL_PRESETS.filter(t => selectedOptionals[t.key]);
+  const allTasks = [...MANDATORY_TASKS, ...optionalSelected, ...customTasks];
+  setBtnLoading('build-done-btn', true);
+
+  if (sb) {
+    // Check username not taken
+    const { data: existing } = await sb.from('users').select('id').eq('username', pendingName).maybeSingle();
+    if (existing) { showErr('build-err', 'That name is taken. Go back and try another.'); setBtnLoading('build-done-btn', false); return; }
+
+    const { data: user, error } = await sb.from('users').insert({
+      username: pendingName,
+      tasks: allTasks,
+      current_day: 1,
+      current_attempt: 1,
+    }).select().single();
+
+    if (error) { showErr('build-err', error.message); setBtnLoading('build-done-btn', false); return; }
+    me = user;
+    localStorage.setItem('75h_username', pendingName);
+
+    // If joining via invite code, join the group immediately
+    if (pendingGroupCode) {
+      const { data: group } = await sb.from('groups').select('*').eq('invite_code', pendingGroupCode).maybeSingle();
+      if (group) {
+        await sb.from('users').update({ group_id: group.id }).eq('id', me.id);
+        me.group_id = group.id;
+        myGroup = group;
+        loadApp();
+        setBtnLoading('build-done-btn', false);
+        return;
+      }
+    }
+    showSetup();
+  } else {
+    // Local mode
+    const users = getLocalUsers();
+    if (users[pendingName]) { showErr('build-err', 'That name is taken. Go back and try another.'); setBtnLoading('build-done-btn', false); return; }
+    const newUser = { id: genId(), username: pendingName, tasks: allTasks, group_id: null, current_day: 1, current_attempt: 1, logs: {} };
+    users[pendingName] = newUser;
+    saveLocalUsers(users);
+    me = newUser;
+    localStorage.setItem('75h_username', pendingName);
+
+    if (pendingGroupCode) {
+      const groups = getLocalGroups();
+      const group  = Object.values(groups).find(g => g.invite_code === pendingGroupCode);
+      if (group) {
+        users[pendingName].group_id = group.id;
+        if (!group.members) group.members = [];
+        group.members.push(pendingName);
+        saveLocalUsers(users);
+        saveLocalGroups(groups);
+        me.group_id = group.id;
+        myGroup = group;
+        loadApp();
+        setBtnLoading('build-done-btn', false);
+        return;
+      }
+    }
+    showSetup();
+  }
+  setBtnLoading('build-done-btn', false);
+}
+
+// =============================================
+//  SETUP (create group)
+// =============================================
+function showSetup() {
+  document.getElementById('setup-name').textContent = me.username || me.name || pendingName;
+  showScreen('setup-screen');
+}
+
+async function createGroup() {
+  const gName = document.getElementById('grp-name').value.trim();
+  if (!gName) { showErr('setup-err', 'Give the group a name.'); return; }
+  setBtnLoading('create-group-btn', true);
+  const code = genCode();
+
+  if (sb) {
+    const { data: group, error } = await sb.from('groups').insert({
+      name: gName, invite_code: code, created_by: me.id
+    }).select().single();
+    if (error) { showErr('setup-err', error.message); setBtnLoading('create-group-btn', false); return; }
+    await sb.from('users').update({ group_id: group.id }).eq('id', me.id);
+    me.group_id = group.id;
+    myGroup = group;
+  } else {
+    const groups = getLocalGroups();
+    const group  = { id: genId(), name: gName, invite_code: code, members: [me.username] };
+    groups[group.id] = group;
+    saveLocalGroups(groups);
+    const users = getLocalUsers();
+    users[me.username].group_id = group.id;
+    saveLocalUsers(users);
+    me.group_id = group.id;
+    myGroup = group;
+  }
+
+  setBtnLoading('create-group-btn', false);
+  loadApp();
+}
+
+// =============================================
+//  APP
+// =============================================
+function loadApp() {
+  showScreen('app-screen');
+  renderToday();
+  renderSquad();
+}
+
+function getInviteLink() {
+  const base = window.location.origin + window.location.pathname;
+  return `${base}?code=${myGroup?.invite_code || ''}`;
+}
+
+function getUserTasks() { return me.tasks || MANDATORY_TASKS; }
+
+function initTaskState() {
+  const s = {};
+  getUserTasks().forEach(t => { s[t.key] = false; });
+  return s;
+}
+
+const lk = (attempt, day) => `${attempt}_${day}`;
+
+function getMotivator(day) {
+  const m = MOTIVATORS.find(m => day >= m.min && day <= m.max);
+  return m ? m.text : '';
+}
+
+// ---- TODAY ----
+async function renderToday() {
+  const day     = me.current_day || me.currentDay || 1;
+  const attempt = me.current_attempt || me.currentAttempt || 1;
+
+  document.getElementById('today-day-num').textContent = day;
+  document.getElementById('nav-day-pill').textContent  = `DAY ${day}`;
+  document.getElementById('today-date-str').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', day:'numeric', month:'long' });
+
+  const chip = document.getElementById('attempt-chip');
+  if (attempt > 1) { chip.textContent = `Attempt ${attempt}`; chip.style.display = 'inline-block'; }
+  else chip.style.display = 'none';
+
+  document.getElementById('motivator-line').textContent = getMotivator(day);
+
+  const done = Math.max(0, day - 1);
+  document.getElementById('bar-label-text').textContent = `${done} / 75`;
+  document.getElementById('bar-fill').style.width = `${Math.min((done / 75) * 100, 100)}%`;
+
+  let log = null;
+  if (sb) {
+    const { data } = await sb.from('daily_logs').select('*').eq('user_id', me.id).eq('attempt', attempt).eq('day_number', day).maybeSingle();
+    log = data;
+  } else {
+    const users = getLocalUsers();
+    const u = users[me.username];
+    log = u?.logs?.[lk(attempt, day)] || null;
+  }
+
+  if (log && log.submitted) {
+    taskState = log.tasks || {};
+    renderLockedDay(log);
+  } else {
+    taskState = log?.tasks ? { ...log.tasks } : initTaskState();
+    document.getElementById('status-banner').innerHTML = '';
+    document.getElementById('submit-section').style.display = 'block';
+    renderIconStrip();
+    renderTaskCards(false);
+    updateLockBtn();
+  }
+}
+
+function renderIconStrip() {
+  const strip = document.getElementById('icon-strip');
+  strip.innerHTML = '';
+  getUserTasks().forEach(t => {
+    const node = document.createElement('div');
+    node.className = `icon-node${taskState[t.key] ? ' done' : ''}`;
+    node.title = t.name;
+    node.textContent = t.icon;
+    strip.appendChild(node);
+  });
+}
+
+function renderTaskCards(locked) {
+  const wrap = document.getElementById('tasks-wrap');
+  wrap.innerHTML = '';
+  getUserTasks().forEach((t, i) => {
+    const checked = taskState[t.key];
+    const card    = document.createElement('div');
+    card.className = `task-card${checked ? ' checked' : ''}${locked ? ' locked' : ''}`;
+    card.style.animationDelay = `${i * 0.045}s`;
+    if (!locked) card.onclick = () => toggleTask(t.key);
+    card.innerHTML = `<div class="task-icon-box">${t.icon}</div><div class="task-body"><div class="task-name">${t.name}</div><div class="task-desc">${t.desc}</div></div><div class="task-check">${checked ? '✓' : ''}</div>`;
+    wrap.appendChild(card);
+  });
+  const allDone = Object.values(taskState).every(v => v);
+  document.getElementById('warning-text').style.display = (!locked && !allDone) ? 'block' : 'none';
+}
+
+function updateLockBtn() {
+  const allDone = Object.values(taskState).every(v => v);
+  document.getElementById('lock-btn').classList.toggle('all-done', allDone);
+}
+
+async function toggleTask(key) {
+  taskState[key] = !taskState[key];
+  const day     = me.current_day || me.currentDay || 1;
+  const attempt = me.current_attempt || me.currentAttempt || 1;
+
+  if (sb) {
+    // Upsert draft log
+    await sb.from('daily_logs').upsert({
+      user_id: me.id, attempt, day_number: day,
+      log_date: new Date().toISOString().split('T')[0],
+      tasks: taskState, submitted: false, failed: false
+    }, { onConflict: 'user_id,attempt,day_number' });
+  } else {
+    const users = getLocalUsers();
+    const key2  = lk(attempt, day);
+    if (!users[me.username].logs) users[me.username].logs = {};
+    if (!users[me.username].logs[key2]) users[me.username].logs[key2] = {};
+    users[me.username].logs[key2].tasks = { ...taskState };
+    saveLocalUsers(users);
+  }
+
+  renderIconStrip();
+  renderTaskCards(false);
+  updateLockBtn();
+}
+
+function renderLockedDay(log) {
+  const allDone = Object.values(log.tasks || {}).every(v => v);
+  const banner  = document.getElementById('status-banner');
+  if (log.failed || !allDone) {
+    banner.innerHTML = `<div class="status-failed"><div class="s-title">DAY FAILED</div><div class="s-sub">Tomorrow you go again from Day 1. That's the deal.</div></div>`;
+  } else {
+    banner.innerHTML = `<div class="status-complete"><div class="s-title">✦ DAY DONE</div><div class="s-sub">Done for today. See you tomorrow.</div></div>`;
+  }
+  renderIconStrip();
+  renderTaskCards(true);
+  document.getElementById('submit-section').style.display = 'none';
+}
+
+async function submitDay() {
+  const day     = me.current_day || me.currentDay || 1;
+  const attempt = me.current_attempt || me.currentAttempt || 1;
+  const allDone = Object.values(taskState).every(v => v);
+  const today   = new Date().toISOString().split('T')[0];
+
+  if (sb) {
+    await sb.from('daily_logs').upsert({
+      user_id: me.id, attempt, day_number: day,
+      log_date: today, tasks: taskState, submitted: true, failed: !allDone
+    }, { onConflict: 'user_id,attempt,day_number' });
+
+    let updates = {};
+    if (allDone) {
+      updates = day >= 75 ? { current_day: 76 } : { current_day: day + 1 };
+    } else {
+      updates = { current_day: 1, current_attempt: attempt + 1 };
+    }
+    await sb.from('users').update(updates).eq('id', me.id);
+    Object.assign(me, updates);
+  } else {
+    const users = getLocalUsers();
+    const key2  = lk(attempt, day);
+    if (!users[me.username].logs) users[me.username].logs = {};
+    users[me.username].logs[key2] = { tasks: { ...taskState }, submitted: true, failed: !allDone, date: today };
+    if (allDone) {
+      users[me.username].current_day = day >= 75 ? 76 : day + 1;
+      me.current_day = users[me.username].current_day;
+    } else {
+      users[me.username].current_day = 1;
+      users[me.username].current_attempt = attempt + 1;
+      me.current_day = 1;
+      me.current_attempt = attempt + 1;
+    }
+    saveLocalUsers(users);
+  }
+
+  if (allDone && day >= 75) toast('75 days. You actually did it.');
+  else if (allDone) toast(`Day ${day} locked. Come back tomorrow.`);
+  else toast('Missed one. Starting over tomorrow.');
+
+  renderToday();
+}
+
+// ---- SQUAD ----
+async function renderSquad() {
+  if (!myGroup) return;
+  document.getElementById('squad-name-display').textContent = myGroup.name.toUpperCase();
+  document.getElementById('invite-link-display').textContent = getInviteLink();
+
+  let members = [];
+  if (sb) {
+    const { data } = await sb.from('users').select('*').eq('group_id', myGroup.id);
+    members = data || [];
+  } else {
+    const users  = getLocalUsers();
+    const groups = getLocalGroups();
+    const group  = groups[myGroup.id];
+    members = (group?.members || []).map(n => users[n]).filter(Boolean);
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const cards = document.getElementById('member-cards');
+  cards.innerHTML = '';
+
+  for (const u of members) {
+    const uDay     = u.current_day || u.currentDay || 1;
+    const uAttempt = u.current_attempt || u.currentAttempt || 1;
+    let log = null;
+
+    if (sb) {
+      const { data } = await sb.from('daily_logs').select('*').eq('user_id', u.id).eq('attempt', uAttempt).eq('day_number', uDay).maybeSingle();
+      log = data;
+    } else {
+      const users = getLocalUsers();
+      log = users[u.username]?.logs?.[lk(uAttempt, uDay)] || null;
+    }
+
+    let cls = 'pending', label = 'Pending';
+    if (log && log.submitted) {
+      const done = Object.values(log.tasks || {}).every(v => v);
+      cls   = (log.failed || !done) ? 'failed' : 'done';
+      label = cls === 'done' ? 'Done' : 'Failed';
+    }
+
+    const uName    = u.username || u.name;
+    const isMe     = uName === (me.username || me.name);
+    const lastSeen = log?.log_date ? (log.log_date === today ? 'Today' : log.log_date) : 'Not yet';
+    const taskCount = (u.tasks || MANDATORY_TASKS).length;
+
+    const card = document.createElement('div');
+    card.className = 'member-card';
+    card.innerHTML = `
+      <div class="member-av">${uName[0].toUpperCase()}</div>
+      <div class="member-info">
+        <div class="member-name-row">${uName}${isMe ? '<span class="you-tag">You</span>' : ''}</div>
+        <div class="member-sub">Day ${uDay} &nbsp;·&nbsp; ${taskCount} tasks &nbsp;·&nbsp; ${lastSeen}</div>
+      </div>
+      <div class="status-badge ${cls}">${label}</div>
+    `;
+    cards.appendChild(card);
+  }
+}
+
+function copyInviteLink() {
+  navigator.clipboard.writeText(getInviteLink()).catch(() => {});
+  toast('Invite link copied. Send it on WhatsApp.');
+}
+
+// ---- HISTORY ----
+async function openHistory() {
+  const grid  = document.getElementById('cal-grid');
+  const stats = document.getElementById('hist-stats');
+  grid.innerHTML = '';
+
+  const attempt = me.current_attempt || me.currentAttempt || 1;
+  let logs = [];
+
+  if (sb) {
+    const { data } = await sb.from('daily_logs').select('*').eq('user_id', me.id).eq('attempt', attempt).eq('submitted', true);
+    logs = data || [];
+  } else {
+    const users = getLocalUsers();
+    const allLogs = users[me.username]?.logs || {};
+    logs = Object.entries(allLogs)
+      .filter(([k]) => k.startsWith(`${attempt}_`))
+      .map(([, v]) => v)
+      .filter(l => l.submitted);
+  }
+
+  const logMap = {};
+  logs.forEach(l => { logMap[l.day_number || parseInt(Object.keys(l)[0])] = l; });
+
+  const currentDay = me.current_day || me.currentDay || 1;
+
+  for (let d = 1; d <= 75; d++) {
+    const log  = logMap[d];
+    const cell = document.createElement('div');
+    cell.className   = 'cal-cell';
+    cell.textContent = d;
+    if (log) {
+      const ok = Object.values(log.tasks || {}).every(v => v);
+      cell.className += (log.failed || !ok) ? ' fail' : ' done';
+    }
+    if (d === currentDay) cell.className += ' now';
+    grid.appendChild(cell);
+  }
+
+  const completed = logs.filter(l => !l.failed && Object.values(l.tasks || {}).every(v => v)).length;
+  const restarts  = (me.current_attempt || me.currentAttempt || 1) - 1;
+
+  stats.innerHTML = `
+    <div class="hist-stat"><div class="hist-num g">${completed}</div><div class="hist-lbl">Done</div></div>
+    <div class="hist-stat"><div class="hist-num r">${restarts}</div><div class="hist-lbl">Restarts</div></div>
+    <div class="hist-stat"><div class="hist-num gold">${Math.max(0, 75 - completed)}</div><div class="hist-lbl">Left</div></div>
+  `;
+
+  document.getElementById('history-panel').classList.add('open');
+}
+
+function closeHistory() { document.getElementById('history-panel').classList.remove('open'); }
+
+// =============================================
+//  CONFIG MODAL
+// =============================================
+function openConfigModal() {
+  document.getElementById('sql-block').textContent = SQL_SCHEMA;
+  document.getElementById('sb-url').value = localStorage.getItem('sb_url') || '';
+  document.getElementById('sb-key').value = localStorage.getItem('sb_key') || '';
+  document.getElementById('config-modal').classList.add('open');
+}
+
+function closeConfigModal() { document.getElementById('config-modal').classList.remove('open'); }
+
+function saveConfig() {
+  const url = document.getElementById('sb-url').value.trim();
+  const key = document.getElementById('sb-key').value.trim();
+  if (!url || !key) return;
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  location.reload();
+}
+
+function copySQL() {
+  navigator.clipboard.writeText(SQL_SCHEMA).catch(() => {});
+  toast('SQL copied.');
+}
+
+// =============================================
+//  HELPERS
+// =============================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function switchPanel(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById(`panel-${name}`).classList.add('active');
+  document.getElementById(`nav-${name}`).classList.add('active');
+  if (name === 'squad') renderSquad();
+}
+
+function showErr(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.style.display = 'block'; }
+function hideErr(id) { document.getElementById(id).style.display = 'none'; }
+
+function setBtnLoading(id, loading) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) btn.dataset.orig = btn.textContent, btn.textContent = '...';
+  else btn.textContent = btn.dataset.orig || btn.textContent;
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function genCode() {
+  const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({ length: 6 }, () => c[Math.floor(Math.random() * c.length)]).join('');
+}
+
+function genId() { return Math.random().toString(36).substring(2) + Date.now().toString(36); }
+</script>
+</body>
+</html>
