@@ -1273,7 +1273,25 @@ async function confirmSubmit() {
   else if (allDone) toast(`Day ${day} locked. Come back tomorrow.`);
   else toast('Missed one. Starting over tomorrow.');
 
-  renderToday();
+  // Update nav pill and progress bar immediately
+  const newDay = me.current_day || me.currentDay || 1;
+  document.getElementById('nav-day-pill').textContent = `DAY ${newDay}`;
+
+  if (allDone) {
+    // Show locked state with countdown for the day just completed
+    const fakeLog = { tasks: { ...taskState }, submitted: true, failed: false };
+    renderLockedDay(fakeLog);
+    // Update day number display to show completed day
+    document.getElementById('today-day-num').textContent = day;
+    document.getElementById('attempt-chip').style.display = 'none';
+    document.getElementById('motivator-line').textContent = '';
+    const done = Math.max(0, day);
+    document.getElementById('bar-label-text').textContent = `${done} / 75`;
+    document.getElementById('bar-fill').style.width = `${Math.min((done / 75) * 100, 100)}%`;
+  } else {
+    // Failed - re-render today which is now day 1
+    renderToday();
+  }
 }
 
 // ---- SQUAD ----
