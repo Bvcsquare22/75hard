@@ -286,6 +286,21 @@
   .modal-sub { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
   .sql-block { background: var(--ink); color: #a8c8a0; padding: 12px; border-radius: 6px; font-size: 10px; font-family: monospace; line-height: 1.6; overflow-x: auto; white-space: pre; margin-bottom: 20px; max-height: 200px; overflow-y: auto; }
 
+  /* COUNTDOWN */
+  .countdown-wrap {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(13,13,13,0.05);
+    animation: riseUp 0.3s ease both;
+  }
+  .countdown-label { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .countdown-time { font-family: var(--font-display); font-size: 52px; color: var(--gold); letter-spacing: 2px; line-height: 1; }
+  .countdown-sub { font-size: 11px; font-weight: 500; color: var(--muted); margin-top: 6px; }
+  .task-card.greyed { opacity: 0.35; cursor: default; pointer-events: none; }
+
   .toast { position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%) translateY(50px); background: var(--ink); color: var(--cream); padding: 11px 22px; border-radius: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; z-index: 999; transition: transform 0.3s ease, opacity 0.3s ease; opacity: 0; white-space: nowrap; max-width: 90vw; text-align: center; }
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 </style>
@@ -557,7 +572,13 @@ let sb = null;
 function initSupabase() {
   const url = 'https://odkvslicoobbzangjvst.supabase.co';
   const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ka3ZzbGljb29iYnphbmdqdnN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4Mzc4OTksImV4cCI6MjA5NDQxMzg5OX0._XzthrbWnK8SXOYMfVowiPsTQ50aKgS9GVq1essJhzs';
-  try { sb = window.supabase.createClient(url, key); return true; }
+  try {
+    sb = window.supabase.createClient(url, key, {
+      auth: { persistSession: false },
+      global: { fetch: (...args) => fetch(...args) }
+    });
+    return true;
+  }
   catch(e) { return false; }
 }
 
@@ -583,10 +604,13 @@ const MANDATORY_TASKS = [
 
 const OPTIONAL_PRESETS = [
   { key:'workout2',     icon:'🌤', name:'Second Workout (Outdoor)', desc:'45 minutes outside' },
+  { key:'abs',          icon:'🔥', name:'Abs Circuit',              desc:'10-15 mins: planks, leg raises, crunches' },
   { key:'fiction',      icon:'📚', name:'Read 10 Pages of Fiction',  desc:'Any fiction book' },
-  { key:'scripture',    icon:'✝️', name:'Read the Scripture',        desc:'10 pages minimum' },
+  { key:'scripture',    icon:'✝️', name:'Read the Scripture',        desc:'Any amount, consistency over quantity' },
   { key:'thankfulness', icon:'🙏', name:'Thankfulness List',         desc:'Write what you are grateful for today' },
   { key:'prayer',       icon:'🕊️', name:'Prayer and Devotion',       desc:'Spend time in prayer' },
+  { key:'journaling',   icon:'📝', name:'Journaling',                desc:'Write freely for at least 5 minutes' },
+  { key:'nosugar',      icon:'🚫', name:'No Added Sugar',            desc:'Zero added sugar today' },
   { key:'noyelling',    icon:'🤫', name:'No Yelling',                desc:'Keep your voice and your peace' },
 ];
 
@@ -1110,17 +1134,70 @@ async function toggleTask(key) {
   updateLockBtn();
 }
 
+let countdownInterval = null;
+
+function getMidnightCountdown() {
+  const now = new Date();
+  const midnight = new Date();
+  midnight.setHours(24, 0, 0, 0);
+  const diff = midnight - now;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
 function renderLockedDay(log) {
   const allDone = Object.values(log.tasks || {}).every(v => v);
   const banner  = document.getElementById('status-banner');
+
   if (log.failed || !allDone) {
     banner.innerHTML = `<div class="status-failed"><div class="s-title">DAY FAILED</div><div class="s-sub">Tomorrow you go again from Day 1. That's the deal.</div></div>`;
   } else {
-    banner.innerHTML = `<div class="status-complete"><div class="s-title">✦ DAY DONE</div><div class="s-sub">Done for today. See you tomorrow.</div></div>`;
+    banner.innerHTML = `
+      <div class="status-complete" style="margin-bottom:12px">
+        <div class="s-title">✦ DAY DONE</div>
+        <div class="s-sub">Done for today. See you tomorrow.</div>
+      </div>
+      <div class="countdown-wrap">
+        <div class="countdown-label">Next day unlocks in</div>
+        <div class="countdown-time" id="countdown-display">${getMidnightCountdown()}</div>
+        <div class="countdown-sub">Midnight reset</div>
+      </div>
+    `;
+
+    // Start live countdown
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+      const el = document.getElementById('countdown-display');
+      if (el) el.textContent = getMidnightCountdown();
+      else clearInterval(countdownInterval);
+    }, 1000);
   }
+
   renderIconStrip();
-  renderTaskCards(true);
+  renderTaskCardsGreyed(log.tasks || {});
   document.getElementById('submit-section').style.display = 'none';
+}
+
+function renderTaskCardsGreyed(tasks) {
+  const wrap = document.getElementById('tasks-wrap');
+  wrap.innerHTML = '';
+  getUserTasks().forEach((t, i) => {
+    const checked = tasks[t.key];
+    const card    = document.createElement('div');
+    card.className = `task-card greyed${checked ? ' checked' : ''}`;
+    card.style.animationDelay = `${i * 0.045}s`;
+    card.innerHTML = `
+      <div class="task-icon-box">${t.icon}</div>
+      <div class="task-body">
+        <div class="task-name">${t.name}</div>
+        <div class="task-desc">${t.desc}</div>
+      </div>
+      <div class="task-check">${checked ? '✓' : ''}</div>
+    `;
+    wrap.appendChild(card);
+  });
 }
 
 function submitDay() {
